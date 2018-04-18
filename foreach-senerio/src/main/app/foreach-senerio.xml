@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+ xmlns:spring="http://www.springframework.org/schema/beans" 
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration"/>
+    <flow name="for-eachFlow-2">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/postDataSecond" allowedMethods="POST" doc:name="HTTP"/>
+        <logger message="#[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:input-payload doc:sample="C:\Users\sadik.ali\AppData\Local\Packages\Microsoft.SkypeApp_kzf8qxf38zg5c\LocalState\Downloads\MuleSoft - Scenario for XML parsing\THD_RGA180_MultiLine_IB -Created.xml" mimeType="application/xml"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+ EDI-180: {
+  BGN: {
+   BasicBaselineItemData:payload.EDI-180.BGN.*BasicBaselineItemData map ((basicBaselineItemDatum , indexOfBasicBaselineItemDatum) -> {
+   
+     BLI: {
+      BLI02: basicBaselineItemDatum.BLI.BLI02,
+      BLI03: basicBaselineItemDatum.BLI.BLI03,
+      BLI04: basicBaselineItemDatum.BLI.BLI04,
+      BLI05: basicBaselineItemDatum.BLI.BLI05,
+      BLI06: basicBaselineItemDatum.BLI.BLI06,
+      BLI09: basicBaselineItemDatum.BLI.BLI09 when basicBaselineItemDatum.BLI.BLI08 == 'VP' otherwise ''
+     },
+     (basicBaselineItemDatum.*N9 map ((n9 , indexOfN9) -> {
+      N9: {
+       N901:n9.N901,
+       N902: n9.N902 when n9.N901 == '25' or n9.N901 == 'L1' or n9.N901 == 'ZZ' otherwise ""
+      }
+      })),
+      PID: {
+       PID05: payload.EDI-180.BGN.BasicBaselineItemData.PID.PID05
+      },
+      RDR: {
+       RDR05: payload.EDI-180.BGN.BasicBaselineItemData.RDR.RDR05
+      },
+      CodeSourceInformation: {
+       LQ: {
+        LQ02: payload.EDI-180.BGN.BasicBaselineItemData.CodeSourceInformation.LQ.LQ02
+       }
+      }
+     
+    
+   })
+  }
+  
+  }
+ 
+ 
+ }
+]]></dw:set-payload>
+        </dw:transform-message>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+((payload['EDI-180'])['BGN'])['BasicBaselineItemData']]]></dw:set-payload>
+        </dw:transform-message>
+        <foreach doc:name="For Each">
+            <processor-chain doc:name="Processor Chain">
+                <dw:transform-message doc:name="Transform Message">
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload
+
+]]></dw:set-payload>
+                </dw:transform-message>
+                <file:outbound-endpoint path="src/test/resources/out/" outputPattern="#[json:BLI/BLI02]" responseTimeout="10000" doc:name="File"/>
+            </processor-chain>
+        </foreach>
+    </flow>
+    </mule>

@@ -12,7 +12,7 @@ node {
 		stage ('Preparation') {
 			println "Build: " + projectName + " for branch " + env.BRANCH_NAME
 			git(
-				url: "https://github.com/andersencorp/${projectName}.git",
+				url: "https://github.com/dineshkumardoppa/${projectName}.git",
 				credentialsId: 'EAIGitHub',
 				branch: env.BRANCH_NAME
 			)		
